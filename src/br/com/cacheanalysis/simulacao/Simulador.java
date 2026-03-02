@@ -1,4 +1,7 @@
+package br.com.cacheanalysis.simulacao;
 import java.util.Scanner;
+
+import br.com.cacheanalysis.cache.FIFOCache;
 
 public class Simulador {
 
