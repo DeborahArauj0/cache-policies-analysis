@@ -1,3 +1,5 @@
+package br.com.cacheanalysis.cache;
+
 import java.util.HashMap;
 import java.util.Map;
 
@@ -7,9 +9,7 @@ public class LFUCache<T> implements CachePolicy<T> {
     private int hits;
     private int misses;
     
-    // O Mapa garante a busca em O(1)
     private Map<T, Node<T>> cacheMap;
-    // A Lista garante a ordem de quem sai primeiro
     private DoublyLinkedList<T> freqList;
 
     public LFUCache(int capacity) {
@@ -22,27 +22,23 @@ public class LFUCache<T> implements CachePolicy<T> {
 
     @Override
     public boolean access(T key) {
-        // HIT: O paciente já está no cache
         if (cacheMap.containsKey(key)) {
             this.hits++;
             Node<T> node = cacheMap.get(key);
             node.frequency++;
-            freqList.sortByFrequency(node); // Reordena usando a sua lógica imbatível
+            freqList.sortByFrequency(node);
             return true;
         } 
-        // MISS: O paciente não está no cache
         else {
             this.misses++;
             
-            // Se estiver cheio, removemos o menos frequente (que fica no Head da lista)
             if (cacheMap.size() == capacity) {
                 Node<T> evicted = freqList.removeFirst();
                 if (evicted != null) {
-                    cacheMap.remove(evicted.value); // Tira do mapa também
+                    cacheMap.remove(evicted.value);
                 }
             }
             
-            // Adiciona o paciente novo
             Node<T> newNode = new Node<>(key);
             freqList.addFirst(newNode);
             cacheMap.put(key, newNode);
@@ -60,15 +56,12 @@ public class LFUCache<T> implements CachePolicy<T> {
         return this.misses;
     }
 
-    // Método exigido pelo Simulador.java da sua equipe
     public void printCache() {
         System.out.println("Estado do Cache (LFU): " + freqList.toString());
     }
 
     // ==========================================
-    // CLASSES INTERNAS (O motor da frequência)
-    // ==========================================
-    
+
     private static class Node<T> {
         T value;
         int frequency;
@@ -120,7 +113,6 @@ public class LFUCache<T> implements CachePolicy<T> {
             return removed;
         }
 
-        // A sua lógica de ponteiros corrigida!
         public void sortByFrequency(Node<T> node) {
             if (head == null || size == 1 || node.next == null) return;
             if (node.frequency <= node.next.frequency) return;

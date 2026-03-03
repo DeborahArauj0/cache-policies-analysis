@@ -2,7 +2,7 @@ package br.com.cacheanalysis.simulacao;
 
 import br.com.cacheanalysis.cache.FIFOCache;
 import br.com.cacheanalysis.cache.CachePolicy;
-// importar LFU quando estiver pronto
+import br.com.cacheanalysis.cache.LFUCache;
 
 import java.util.List;
 
@@ -29,8 +29,7 @@ public class Experimentos {
                     "FIFO"
             );
 
-            // Quando LFU estiver pronto:
-            // executarExperimento(new LFUCache<>(capacidade), acessos, "LFU");
+            executarExperimento(new LFUCache<>(capacidade), acessos, "LFU");
         }
     }
 
