@@ -6,6 +6,9 @@
 - Deborah dos Santos Araujo
 - Mikael Renan de Oliveira
 - Teones Alex Lira de Farias Filho
+
+### **Documento do projeto:**<br>
+https://docs.google.com/document/d/1kaUEZov6HEL2luhc6fQw7EsyArWNKysm/edit?usp=sharing&ouid=106442824714548305124&rtpof=true&sd=true
 ------------------------------------------------------------------------------------------------------------------------------------
 ### 1. Introdução<br>
 Este projeto foca no dilema da Computação através de um simulador de atendimento ambulatorial desenvolvido em Java. O centro de estudo consiste na implementação do zero e na análise comparativa de três políticas distintas de substituição de páginas de cache, o intuito é demonstrar, com rigor experimental e passo a passo, como a escolha de uma Estrutura de Dados adequada afeta diretamente o desempenho e o tempo de resposta de um sistema real:<br>
