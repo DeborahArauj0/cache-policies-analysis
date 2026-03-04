@@ -46,13 +46,13 @@ cache-policies-analysis/
 ------------------------------------------------------------------------------------------------------------------------------------
 5. Funcionamento Geral<br>
 O fluxo de execução do simulador segue um passo a passo estruturado para avaliar o comportamento do sistema de forma justa e controlada:
-1. **Geração de Carga:** Inicialmente, um conjunto de acessos (simulando requisições de prontuários de pacientes) é gerado.
-2. **Processamento:** Cada acesso desse conjunto é enviado sequencialmente para a política de cache que está sendo testada no momento (FIFO ou LFU).
-3. **Verificação de Estado (Hit/Miss):** Para cada requisição, o sistema avalia onde o dado foi encontrado:
+  1. **Geração de Carga:** Inicialmente, um conjunto de acessos (simulando requisições de prontuários de pacientes) é gerado.
+  2. **Processamento:** Cada acesso desse conjunto é enviado sequencialmente para a política de cache que está sendo testada no momento (FIFO ou LFU).
+  3. **Verificação de Estado (Hit/Miss):** Para cada requisição, o sistema avalia onde o dado foi encontrado:
     * **Hit (Acerto):** O dado solicitado já estava presente e vem diretamente da memória cache, resultando em uma operação rápida.
     * **Miss (Falha):** O dado não é encontrado no cache. Consequentemente, ele é buscado no banco de dados principal (operação custosa) e inserido no cache para acessos futuros.
-4. **Coleta de Métricas:** Durante todo o ciclo, os contadores internos são atualizados, registrando as métricas essenciais.
-5. **Resultados:** Ao final da execução de toda a carga de testes, o desempenho total e o comparativo dos algoritmos são exibidos no console.
+  4. **Coleta de Métricas:** Durante todo o ciclo, os contadores internos são atualizados, registrando as métricas essenciais.
+  5. **Resultados:** Ao final da execução de toda a carga de testes, o desempenho total e o comparativo dos algoritmos são exibidos no console.
 ------------------------------------------------------------------------------------------------------------------------------------
 6. Como Compilar e Executar<br>
 - Passo 1: Compilação: Estando na raiz do projeto (cache-policies-analysis-main), execute o comando abaixo para gerar os binários na pasta out:
@@ -65,8 +65,9 @@ O fluxo de execução do simulador segue um passo a passo estruturado para avali
 ------------------------------------------------------------------------------------------------------------------------------------
 7. Conclusão<br>
 A implementação e execução deste simulador fornecem uma base empírica sólida para compreender o comportamento prático de estruturas de dados aplicadas ao gerenciamento de memória. Através da comparação direta entre as políticas FIFO e LFU, o projeto permite analisar de forma concreta como diferentes estratégias de substituição de páginas impactam diretamente os seguintes aspectos:
-** - Desempenho Geral do Sistema:** Como a escolha da estrutura de dados correta afeta o tempo total de execução e a fluidez do processamento em cenários de alta demanda.
- ** - Eficiência do Algoritmo:** Observando como a taxa de acertos (*hits*) ou falhas (*misses*) varia de acordo com a "inteligência" da política (ordem de chegada vs. frequência de uso) frente a diferentes padrões de acesso aos dados dos pacientes.
-** - Custo Computacional (Acesso ao Banco):** Demonstrando na prática a importância fundamental de minimizar as buscas custosas no banco de dados principal (simuladas pela latência de I/O), poupando recursos do servidor.
+<br> **- Desempenho Geral do Sistema:** Como a escolha da estrutura de dados correta afeta o tempo total de execução e a fluidez do processamento em cenários de alta demanda.
+<br> **- Eficiência do Algoritmo:** Observando como a taxa de acertos (*hits*) ou falhas (*misses*) varia de acordo com a "inteligência" da política (ordem de chegada vs. frequência de uso) frente a diferentes padrões de acesso aos dados dos pacientes.
+<br>**- Custo Computacional (Acesso ao Banco):** Demonstrando na prática a importância fundamental de minimizar as buscas custosas no banco de dados principal (simuladas pela latência de I/O), poupando recursos do servidor.
 
-Em resumo, o projeto comprova o princípio fundamental da disciplina de Estrutura de Dados: não existe um algoritmo universalmente perfeito. A escolha entre uma fila simples (FIFO) ou uma estrutura complexa de mapas e listas (LFU) depende intrinsecamente do comportamento da carga de trabalho (*workload*) que o sistema de saúde precisará suportar.
+Em resumo, o projeto comprova o princípio fundamental da disciplina de Estrutura de Dados: não existe um algoritmo universalmente perfeito.<br>
+A escolha entre uma fila simples (FIFO) ou uma estrutura complexa de mapas e listas (LFU) depende intrinsecamente do comportamento da carga de trabalho (*workload*) que o sistema de saúde precisará suportar.
