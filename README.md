@@ -69,11 +69,10 @@ O fluxo de execução do simulador segue um passo a passo estruturado para avali
 ------------------------------------------------------------------------------------------------------------------------------------
 ### 6. Como Compilar e Executar<br>
 - Passo 1: Compilação: Estando na raiz do projeto (cache-policies-analysis-main), execute o comando abaixo para gerar os binários na pasta out:
-<br> `javac -d out src/main/java/br/com/cacheanalysis/cache/*.java` 
-<br> `src/main/java/br/com/cacheanalysis/simulacao/*.java`
+<br> `javac -d bin $(find src/main/java -name "*.java")` 
 
 - Passo 2: Execução: Ainda no diretório raiz, execute a classe principal de experimentos. Ela testará automaticamente caches de capacidades 10, 20 e 50 em uma base de 100 pacientes com 500 acessos simulados:
-<br> `java -cp out br.com.cacheanalysis.simulacao.Experimentos`
+<br> `java -cp bin br.com.cacheanalysis.simulacao.Experimentos`
 <br> Assim finalização a execução e simulação.
 
 ------------------------------------------------------------------------------------------------------------------------------------
