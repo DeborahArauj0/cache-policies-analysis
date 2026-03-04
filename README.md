@@ -44,25 +44,27 @@ cache-policies-analysis/
 <br>│       ├── WorkloadGenerator.java    (Gerador de matrizes de acesso)
 <br>│       ├── Experimentos.java         (Classe Main para testes automatizados)
 ------------------------------------------------------------------------------------------------------------------------------------
-5. Funcionamento Geral<br>
+5. Funcionamento Geral
 Passo a passo da simulação:
-  1. Um conjunto de acessos é gerado.
-  2. Cada acesso é enviado para a política de cache.
-  3. Se ocorrer:
-    - Hit → dado vem da cache.
-    - Miss → dado é buscado no banco.
-  4. Métricas são coletadas.
-  5. Ao final, o desempenho é exibido.
+    1. Um conjunto de acessos é gerado.
+    2. Cada acesso é enviado para a política de cache.
+    3. Se ocorrer:
+      - Hit → dado vem da cache.
+      - Miss → dado é buscado no banco.
+    4. Métricas são coletadas.
+    5. Ao final, o desempenho é exibido.
 ------------------------------------------------------------------------------------------------------------------------------------
 6. Como Compilar e Executar<br>
 Passo 1: Compilação. Estando na raiz do projeto (cache-policies-analysis-main), execute o comando abaixo para gerar os binários na pasta out:
-<br> `javac -d out src/main/java/br/com/cacheanalysis/cache/*.java src/main/java/br/com/cacheanalysis/simulacao/*.java`
-<br>
+<br> `javac -d out src/main/java/br/com/cacheanalysis/cache/*.java` 
+<br> `src/main/java/br/com/cacheanalysis/simulacao/*.java`
+<
 Passo 2: Execução. Ainda no diretório raiz, execute a classe principal de experimentos. Ela testará automaticamente caches de capacidades 10, 20 e 50 em uma base de 100 pacientes com 500 acessos simulados:
 <br> `java -cp out br.com.cacheanalysis.simulacao.Experimentos`
+<br>
 ------------------------------------------------------------------------------------------------------------------------------------
 7. Conclusão<br>
 Este projeto permite analisar como diferentes políticas de substituição impactam:
-- Desempenho
-- Eficiência
-- Custo no acesso ao banco
+<br>- Desempenho
+<br>- Eficiência
+<br>- Custo no acesso ao banco
