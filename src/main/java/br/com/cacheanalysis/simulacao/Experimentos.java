@@ -5,59 +5,55 @@ import br.com.cacheanalysis.cache.FIFOCache;
 import br.com.cacheanalysis.cache.LFUCache;
 import br.com.cacheanalysis.cache.LRUCache;
 
+import java.io.FileWriter;
+import java.io.IOException;
+import java.io.PrintWriter;
 import java.util.List;
 
 public class Experimentos {
 
-    private static final int TOTAL_PACIENTES = 100;  // começar pequeno
-    private static final int TOTAL_ACESSOS = 500;    // depois escalar
+    private static final int TOTAL_PACIENTES = 100;
+    private static final int TOTAL_ACESSOS = 500;
 
     public static void main(String[] args) {
 
-        // Gera carga UMA vez para que todas as políticas sejam testadas sob o mesmo cenário
-        List<Integer> acessos = 
+        List<Integer> acessos =
                 WorkloadGenerator.gerarCenarioC(TOTAL_PACIENTES, TOTAL_ACESSOS);
 
         int[] capacidades = {10, 20, 50};
 
-        for (int capacidade : capacidades) {
+        try (PrintWriter writer = new PrintWriter(new FileWriter("resultados_experimentos.csv"))) {
 
-            System.out.println("\n=== Capacidade: " + capacidade + " ===");
+            writer.println("Capacidade,Politica,Hits,Misses,AcessosBanco,TempoTotal_ns");
 
-            // Executa o experimento para a política FIFO
-            executarExperimento(
-                    new FIFOCache<>(capacidade),
-                    acessos,
-                    "FIFO"
-            );
+            for (int capacidade : capacidades) {
 
-            // Executa o experimento para a política LFU
-            executarExperimento(
-                    new LFUCache<>(capacidade),
-                    acessos,
-                    "LFU"
-            );
+                System.out.println("\n=== Capacidade: " + capacidade + " ===");
 
-            // Executa o experimento para a política LRU
-            executarExperimento(
-                    new LRUCache<>(capacidade),
-                    acessos,
-                    "LRU"
-            );
+                executarExperimento(new FIFOCache<>(capacidade), acessos, "FIFO", capacidade, writer);
+                executarExperimento(new LFUCache<>(capacidade), acessos, "LFU", capacidade, writer);
+                executarExperimento(new LRUCache<>(capacidade), acessos, "LRU", capacidade, writer);
+            }
+
+            System.out.println("\n✅ Experimentos finalizados! Os resultados foram salvos no arquivo 'resultados_experimentos.csv'");
+
+        } catch (IOException e) {
+            System.err.println("Erro ao tentar salvar o arquivo CSV: " + e.getMessage());
         }
     }
 
     private static void executarExperimento(
             CachePolicy<Integer> cache,
             List<Integer> acessos,
-            String nomePolitica
+            String nomePolitica,
+            int capacidade,
+            PrintWriter writer
     ) {
 
         BancoDeDadosSimulado banco = new BancoDeDadosSimulado(TOTAL_PACIENTES);
 
         long inicio = System.nanoTime();
 
-        // Processa os acessos simulando a busca em cache vs. busca no banco
         for (int id : acessos) {
             if (!cache.access(id)) {
                 banco.buscarPaciente(id);
@@ -67,12 +63,20 @@ public class Experimentos {
         long fim = System.nanoTime();
         long tempoTotal = fim - inicio;
 
-        // Impressão dos resultados e métricas de desempenho
         System.out.println("Política: " + nomePolitica);
         System.out.println("Hits: " + cache.getHits());
         System.out.println("Misses: " + cache.getMisses());
         System.out.println("Acessos ao banco: " + banco.getTotalBuscas());
         System.out.println("Tempo total (ns): " + tempoTotal);
         System.out.println("-----------------------------------");
+
+        writer.printf("%d,%s,%d,%d,%d,%d%n",
+                capacidade,
+                nomePolitica,
+                cache.getHits(),
+                cache.getMisses(),
+                banco.getTotalBuscas(),
+                tempoTotal
+        );
     }
 }
