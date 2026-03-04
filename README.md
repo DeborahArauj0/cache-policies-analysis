@@ -1,6 +1,5 @@
-**Avaliação de Políticas de Cache em Sistemas para Saúde (FIFO e LFU)
+**Avaliação de Políticas de Cache em Sistemas para Saúde (FIFO e LFU)<br>
 Disciplina: Laboratório de Estrutura de Dados e Algoritmos (LEDA)**
-
 Integrantes:
 <br>- Bruna Rocha Cavalcanti
 <br>- Deborah dos Santos Araujo
@@ -20,7 +19,7 @@ O objetivo central deste trabalho é analisar e comparar a eficiência estrutura
 3. Desenvolvimento e Metodologia<br>
 O projeto foi desenvolvido em linguagem Java, adotando princípios de Orientação a Objetos (padrão Strategy via interface genérica CachePolicy<T>) para permitir a troca de algoritmos sem alterar a lógica de simulação.
 
-3.1. Estruturas de Dados Utilizadas
+3.1. Estruturas de Dados Utilizadas<br>
 - FIFO (First In, First Out): Implementado utilizando a interface Queue (através de uma LinkedList) para manter a ordem cronológica de inserção, associada a um HashSet para garantir acesso rápido (tempo constante) na verificação de existência do elemento.
 - LFU (Least Frequently Used): A política que remove o item menos acessado. Foi estruturada mapeando os elementos em um HashMap para buscas rápidas, integrado a uma Lista Duplamente Encadeada (DoublyLinkedList) customizada que reordena internamente os "Nós" (Node) conforme a variável de frequência é atualizada a cada hit.
 
@@ -44,22 +43,22 @@ cache-policies-analysis/
 <br>│       ├── WorkloadGenerator.java    (Gerador de matrizes de acesso)
 <br>│       ├── Experimentos.java         (Classe Main para testes automatizados)
 ------------------------------------------------------------------------------------------------------------------------------------
-5. Funcionamento Geral
-Passo a passo da simulação:
-    1. Um conjunto de acessos é gerado.
-    2. Cada acesso é enviado para a política de cache.
-    3. Se ocorrer:
-      - Hit → dado vem da cache.
-      - Miss → dado é buscado no banco.
-    4. Métricas são coletadas.
-    5. Ao final, o desempenho é exibido.
+5. Funcionamento Geral<br>
+  Passo a passo da simulação:
+  1. Um conjunto de acessos é gerado.
+  2. Cada acesso é enviado para a política de cache.
+  3. Se ocorrer:
+    - Hit → dado vem da cache.
+    - Miss → dado é buscado no banco.
+  4. Métricas são coletadas.
+  5. Ao final, o desempenho é exibido.
 ------------------------------------------------------------------------------------------------------------------------------------
 6. Como Compilar e Executar<br>
-Passo 1: Compilação. Estando na raiz do projeto (cache-policies-analysis-main), execute o comando abaixo para gerar os binários na pasta out:
+- Passo 1: Compilação. Estando na raiz do projeto (cache-policies-analysis-main), execute o comando abaixo para gerar os binários na pasta out:
 <br> `javac -d out src/main/java/br/com/cacheanalysis/cache/*.java` 
 <br> `src/main/java/br/com/cacheanalysis/simulacao/*.java`
-<
-Passo 2: Execução. Ainda no diretório raiz, execute a classe principal de experimentos. Ela testará automaticamente caches de capacidades 10, 20 e 50 em uma base de 100 pacientes com 500 acessos simulados:
+
+- Passo 2: Execução. Ainda no diretório raiz, execute a classe principal de experimentos. Ela testará automaticamente caches de capacidades 10, 20 e 50 em uma base de 100 pacientes com 500 acessos simulados:
 <br> `java -cp out br.com.cacheanalysis.simulacao.Experimentos`
 <br>
 ------------------------------------------------------------------------------------------------------------------------------------
