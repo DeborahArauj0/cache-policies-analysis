@@ -5,7 +5,10 @@ import br.com.cacheanalysis.cache.CachePolicy;
 // importar LFU quando estiver pronto
 
 import java.util.List;
-
+/**
+ * Classe responsável por executar os esperimentos de simulação das
+ * politicas cache
+ */
 public class Experimentos {
 
     private static final int TOTAL_PACIENTES = 100;  // começar pequeno
@@ -17,8 +20,10 @@ public class Experimentos {
         List<Integer> acessos =
                 WorkloadGenerator.gerarCenarioC(TOTAL_PACIENTES, TOTAL_ACESSOS);
 
+        //Capacidades testadas do esperimento
         int[] capacidades = {10, 20, 50};
 
+        //Simula sequência de acessos
         for (int capacidade : capacidades) {
 
             System.out.println("\n=== Capacidade: " + capacidade + " ===");
@@ -53,7 +58,7 @@ public class Experimentos {
 
         long fim = System.nanoTime();
         long tempoTotal = fim - inicio;
-
+        //formatação para melhor visualização do comportamento do 
         System.out.println("Política: " + nomePolitica);
         System.out.println("Hits: " + cache.getHits());
         System.out.println("Misses: " + cache.getMisses());
