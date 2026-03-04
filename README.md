@@ -46,13 +46,13 @@ cache-policies-analysis/
 ------------------------------------------------------------------------------------------------------------------------------------
 5. Funcionamento Geral<br>
 O fluxo de execução do simulador segue um passo a passo estruturado para avaliar o comportamento do sistema de forma justa e controlada:
-  1. **Geração de Carga:** Inicialmente, um conjunto de acessos (simulando requisições de prontuários de pacientes) é gerado.
-  2. **Processamento:** Cada acesso desse conjunto é enviado sequencialmente para a política de cache que está sendo testada no momento (FIFO ou LFU).
-  3. **Verificação de Estado (Hit/Miss):** Para cada requisição, o sistema avalia onde o dado foi encontrado:
-    * **Hit (Acerto):** O dado solicitado já estava presente e vem diretamente da memória cache, resultando em uma operação rápida.
-    * **Miss (Falha):** O dado não é encontrado no cache. Consequentemente, ele é buscado no banco de dados principal (operação custosa) e inserido no cache para acessos futuros.
-  4. **Coleta de Métricas:** Durante todo o ciclo, os contadores internos são atualizados, registrando as métricas essenciais.
-  5. **Resultados:** Ao final da execução de toda a carga de testes, o desempenho total e o comparativo dos algoritmos são exibidos no console.
+   **1-Geração de Carga:** Inicialmente, um conjunto de acessos (simulando requisições de prontuários de pacientes) é gerado.
+   **2-Processamento:** Cada acesso desse conjunto é enviado sequencialmente para a política de cache que está sendo testada no momento (FIFO ou LFU).
+   **3-Verificação de Estado (Hit/Miss):** Para cada requisição, o sistema avalia onde o dado foi encontrado:
+      * **Hit (Acerto):** O dado solicitado já estava presente e vem diretamente da memória cache, resultando em uma operação rápida.
+      * **Miss (Falha):** O dado não é encontrado no cache. Consequentemente, ele é buscado no banco de dados principal (operação custosa) e inserido no cache para acessos futuros.
+   **4-Coleta de Métricas:** Durante todo o ciclo, os contadores internos são atualizados, registrando as métricas essenciais.
+   **5-Resultados:** Ao final da execução de toda a carga de testes, o desempenho total e o comparativo dos algoritmos são exibidos no console.
 ------------------------------------------------------------------------------------------------------------------------------------
 6. Como Compilar e Executar<br>
 - Passo 1: Compilação: Estando na raiz do projeto (cache-policies-analysis-main), execute o comando abaixo para gerar os binários na pasta out:
