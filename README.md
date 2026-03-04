@@ -4,10 +4,10 @@ Projeto EDA/LEDA:
 Comparação De Diferentes Políticas De Cache (FIFO E LFU)
 
 Integrantes:
-Bruna Rocha Cavalcanti – Matrícula: 122210838
-Deborah dos Santos Araujo – Matrícula: 20250030337
-Mikael Renan de Oliveira – Matrícula: 123210843
-Teones Alex Lira de Farias Filho – Matrícula: 122210756
+Bruna Rocha Cavalcanti  
+Deborah dos Santos Araujo  
+Mikael Renan de Oliveira 
+Teones Alex Lira de Farias Filho 
 
 1. Objetivo
 Este projeto tem como objetivo analisar e comparar políticas de substituição de cache, medindo:
@@ -37,6 +37,14 @@ Passo a passo da simulação:
     Miss → dado é buscado no banco.
   4. Métricas são coletadas.
   5. Ao final, o desempenho é exibido.
+
+  ### Para compilar, estando na raiz do projeto (cache-polices-analysis)
+
+  `javac -d out src/main/java/br/com/cacheanalysis/cache/*.java src/main/java/br/com/cacheanalysis/simulacao/*.java`
+
+  ### Ainda na raiz do projeto, executar:
+
+  `java -cp out br.com.cacheanalysis.simulacao.Experimentos`
 
 Conclusão
 Este projeto permite analisar como diferentes políticas de substituição impactam:
