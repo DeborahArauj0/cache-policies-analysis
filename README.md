@@ -1,6 +1,7 @@
 **Avaliação de Políticas de Cache em Sistemas para Saúde (FIFO e LFU)<br>
-Disciplina: Laboratório de Estrutura de Dados e Algoritmos (LEDA)**
-Integrantes:
+Disciplina: Laboratório de Estrutura de Dados e Algoritmos (LEDA)**<br>
+------------------------------------------------------------------------------------------------------------------------------------
+Integrantes:<br>
 <br>- Bruna Rocha Cavalcanti
 <br>- Deborah dos Santos Araujo
 <br>- Mikael Renan de Oliveira
@@ -44,7 +45,7 @@ cache-policies-analysis/
 <br>│       ├── Experimentos.java         (Classe Main para testes automatizados)
 ------------------------------------------------------------------------------------------------------------------------------------
 5. Funcionamento Geral<br>
-  Passo a passo da simulação:
+Passo a passo da simulação:
   1. Um conjunto de acessos é gerado.
   2. Cada acesso é enviado para a política de cache.
   3. Se ocorrer:
@@ -54,13 +55,13 @@ cache-policies-analysis/
   5. Ao final, o desempenho é exibido.
 ------------------------------------------------------------------------------------------------------------------------------------
 6. Como Compilar e Executar<br>
-- Passo 1: Compilação. Estando na raiz do projeto (cache-policies-analysis-main), execute o comando abaixo para gerar os binários na pasta out:
+- Passo 1: Compilação: Estando na raiz do projeto (cache-policies-analysis-main), execute o comando abaixo para gerar os binários na pasta out:
 <br> `javac -d out src/main/java/br/com/cacheanalysis/cache/*.java` 
 <br> `src/main/java/br/com/cacheanalysis/simulacao/*.java`
 
-- Passo 2: Execução. Ainda no diretório raiz, execute a classe principal de experimentos. Ela testará automaticamente caches de capacidades 10, 20 e 50 em uma base de 100 pacientes com 500 acessos simulados:
+- Passo 2: Execução: Ainda no diretório raiz, execute a classe principal de experimentos. Ela testará automaticamente caches de capacidades 10, 20 e 50 em uma base de 100 pacientes com 500 acessos simulados:
 <br> `java -cp out br.com.cacheanalysis.simulacao.Experimentos`
-<br>
+<br> Assim finalização a execução e simulação.
 ------------------------------------------------------------------------------------------------------------------------------------
 7. Conclusão<br>
 Este projeto permite analisar como diferentes políticas de substituição impactam:
