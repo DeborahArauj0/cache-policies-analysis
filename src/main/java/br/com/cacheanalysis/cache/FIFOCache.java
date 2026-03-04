@@ -37,8 +37,9 @@ public class FIFOCache<T> implements CachePolicy<T> {
         if (queue.size() == capacity) {
             T removed = queue.poll();
             cacheSet.remove(removed);
-         //Linha para análise cientifica, apresentar apenas em momento de debug
-         //   System.out.println("REMOVEU: " + removed);
+
+            // System.out.println("REMOVEU: " + removed);
+
         }
 
         // adiciona novo

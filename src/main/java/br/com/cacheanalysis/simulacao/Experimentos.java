@@ -1,8 +1,9 @@
 package br.com.cacheanalysis.simulacao;
 
-import br.com.cacheanalysis.cache.FIFOCache;
 import br.com.cacheanalysis.cache.CachePolicy;
-// importar LFU quando estiver pronto
+import br.com.cacheanalysis.cache.FIFOCache;
+import br.com.cacheanalysis.cache.LFUCache;
+import br.com.cacheanalysis.cache.LRUCache;
 
 import java.util.List;
 /**
@@ -16,8 +17,8 @@ public class Experimentos {
 
     public static void main(String[] args) {
 
-        // Gera carga UMA vez
-        List<Integer> acessos =
+        // Gera carga UMA vez para que todas as políticas sejam testadas sob o mesmo cenário
+        List<Integer> acessos = 
                 WorkloadGenerator.gerarCenarioC(TOTAL_PACIENTES, TOTAL_ACESSOS);
 
         //Capacidades testadas do esperimento
@@ -28,14 +29,26 @@ public class Experimentos {
 
             System.out.println("\n=== Capacidade: " + capacidade + " ===");
 
+            // Executa o experimento para a política FIFO
             executarExperimento(
                     new FIFOCache<>(capacidade),
                     acessos,
                     "FIFO"
             );
 
-            // Quando LFU estiver pronto:
-            // executarExperimento(new LFUCache<>(capacidade), acessos, "LFU");
+            // Executa o experimento para a política LFU
+            executarExperimento(
+                    new LFUCache<>(capacidade),
+                    acessos,
+                    "LFU"
+            );
+
+            // Executa o experimento para a política LRU
+            executarExperimento(
+                    new LRUCache<>(capacidade),
+                    acessos,
+                    "LRU"
+            );
         }
     }
 
@@ -45,11 +58,11 @@ public class Experimentos {
             String nomePolitica
     ) {
 
-        BancoDeDadosSimulado banco =
-                new BancoDeDadosSimulado(TOTAL_PACIENTES);
+        BancoDeDadosSimulado banco = new BancoDeDadosSimulado(TOTAL_PACIENTES);
 
         long inicio = System.nanoTime();
 
+        // Processa os acessos simulando a busca em cache vs. busca no banco
         for (int id : acessos) {
             if (!cache.access(id)) {
                 banco.buscarPaciente(id);
@@ -58,7 +71,9 @@ public class Experimentos {
 
         long fim = System.nanoTime();
         long tempoTotal = fim - inicio;
-        //formatação para melhor visualização do comportamento do 
+
+        // Impressão dos resultados e métricas de desempenho
+
         System.out.println("Política: " + nomePolitica);
         System.out.println("Hits: " + cache.getHits());
         System.out.println("Misses: " + cache.getMisses());
