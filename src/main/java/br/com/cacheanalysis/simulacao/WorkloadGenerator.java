@@ -12,7 +12,7 @@ import java.util.Random;
  * distribuições estatísticas
  * 
  * A geração utiliza uma SEED fixa para garantir reprodutividade
- * dos esperimentos
+ * dos esperimentosch   
  */
 public class WorkloadGenerator {
 
@@ -50,6 +50,44 @@ public class WorkloadGenerator {
 
         return acessos;
     }
+
+    // Cenário B - Temporalidade (LRU Friendly)
+    public static List<Integer> gerarCenarioB(int totalPacientes, int totalAcessos) {
+
+        Random random = new Random(SEED);
+        List<Integer> acessos = new ArrayList<>();
+
+        // Janela de pacientes recentemente acessados
+        List<Integer> janelaRecente = new ArrayList<>();
+
+        int tamanhoJanela = 10; // controla o grau de temporalidade
+
+        for (int i = 0; i < totalAcessos; i++) {
+
+            double probabilidade = random.nextDouble();
+            int id;
+
+            if (!janelaRecente.isEmpty() && probabilidade < 0.8) {
+                // 80% de chance de repetir pacientes recentes
+                id = janelaRecente.get(random.nextInt(janelaRecente.size()));
+            } else {
+                // 20% de chance de acessar um paciente novo
+                id = random.nextInt(totalPacientes) + 1;
+            }
+
+            acessos.add(id);
+
+            // Atualiza janela recente
+            janelaRecente.add(id);
+
+            if (janelaRecente.size() > tamanhoJanela) {
+                janelaRecente.remove(0);
+            }
+        }
+
+        return acessos;
+    }
+
 
     // Cenário C - Frequência (LFU Friendly)
     public static List<Integer> gerarCenarioC(int totalPacientes, int totalAcessos) {
