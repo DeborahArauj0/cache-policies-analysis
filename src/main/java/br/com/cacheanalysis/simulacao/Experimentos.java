@@ -15,16 +15,17 @@ import java.util.List;
  */
 public class Experimentos {
 
-    private static final int TOTAL_PACIENTES = 100;
-    private static final int TOTAL_ACESSOS = 500;
+    private static final int TOTAL_PACIENTES = 50000;
+    private static final int TOTAL_ACESSOS = 25000;
 
+    
     public static void main(String[] args) {
 
         List<Integer> acessos =
                 WorkloadGenerator.gerarCenarioC(TOTAL_PACIENTES, TOTAL_ACESSOS);
 
         //Capacidades testadas do esperimento
-        int[] capacidades = {10, 20, 50};
+        int[] capacidades = {10, 50, 100, 500, 1000, 5000, 10000, 50000};
 
 
         //Simula sequência de acessos
