@@ -33,7 +33,7 @@ public class FIFOCache<T> implements CachePolicy<T> {
         // MISS
         misses++;
 
-        // cache cheio --> remove mais antigo
+        // cache cheio ---> remove mais antigo
         if (queue.size() == capacity) {
             T removed = queue.poll();
             cacheSet.remove(removed);
