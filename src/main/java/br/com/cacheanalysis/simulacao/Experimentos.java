@@ -15,33 +15,46 @@ import java.util.List;
  */
 public class Experimentos {
 
-    private static final int TOTAL_PACIENTES = 50000;
-    private static final int TOTAL_ACESSOS = 25000;
+    //escala de base de pacientes
+    private static final int[] TOTAL_PACIENTES = {1000, 10000, 50000};
+    private static final int FATOR_ACESSOS = 5;
+    private static int BASE_ATUAL;
+    private static int ACESSOS_ATUAL;
+
 
     
     public static void main(String[] args) {
 
-        List<Integer> acessos =
-                WorkloadGenerator.gerarCenarioC(TOTAL_PACIENTES, TOTAL_ACESSOS);
-
-        //Capacidades testadas do esperimento
+ // Capacidades testadas do experimento
         int[] capacidades = {10, 50, 100, 500, 1000, 5000, 10000, 50000};
-
-
-        //Simula sequência de acessos
 
         try (PrintWriter writer = new PrintWriter(new FileWriter("resultados_experimentos.csv"))) {
 
+            writer.println("BasePacientes,TotalAcessos,Capacidade,Politica,Hits,Misses,AcessosBanco,TempoTotal_ns");
 
-            writer.println("Capacidade,Politica,Hits,Misses,AcessosBanco,TempoTotal_ns");
+            // Loop variando o tamanho da base
+            for (int totalPacientes : TOTAL_PACIENTES) {
 
-            for (int capacidade : capacidades) {
+                BASE_ATUAL = totalPacientes;
+                ACESSOS_ATUAL = totalPacientes * FATOR_ACESSOS;
 
-                System.out.println("\n=== Capacidade: " + capacidade + " ===");
+                System.out.println("\n==================================");
+                System.out.println("Base de Pacientes: " + BASE_ATUAL);
+                System.out.println("Total de Acessos: " + ACESSOS_ATUAL);
+                System.out.println("==================================");
 
-                executarExperimento(new FIFOCache<>(capacidade), acessos, "FIFO", capacidade, writer);
-                executarExperimento(new LFUCache<>(capacidade), acessos, "LFU", capacidade, writer);
-                executarExperimento(new LRUCache<>(capacidade), acessos, "LRU", capacidade, writer);
+                List<Integer> acessos =
+                        WorkloadGenerator.gerarCenarioC(BASE_ATUAL, ACESSOS_ATUAL);
+
+                // Mantido exatamente como você tinha
+                for (int capacidade : capacidades) {
+
+                    System.out.println("\n=== Capacidade: " + capacidade + " ===");
+
+                    executarExperimento(new FIFOCache<>(capacidade), acessos, "FIFO", capacidade, writer);
+                    executarExperimento(new LFUCache<>(capacidade), acessos, "LFU", capacidade, writer);
+                    executarExperimento(new LRUCache<>(capacidade), acessos, "LRU", capacidade, writer);
+                }
             }
 
             System.out.println("\n✅ Experimentos finalizados! Os resultados foram salvos no arquivo 'resultados_experimentos.csv'");
@@ -59,7 +72,7 @@ public class Experimentos {
             PrintWriter writer
     ) {
 
-        BancoDeDadosSimulado banco = new BancoDeDadosSimulado(TOTAL_PACIENTES);
+        BancoDeDadosSimulado banco = new BancoDeDadosSimulado(BASE_ATUAL);
 
         long inicio = System.nanoTime();
 
