@@ -60,7 +60,7 @@ cache-policies-analysis/
 ### 5. Funcionamento Geral<br>
 O fluxo de execução do simulador segue um passo a passo estruturado para avaliar o comportamento do sistema de forma justa e controlada:<br>
    1. Geração de Carga: Inicialmente, um conjunto de acessos (simulando requisições de prontuários de pacientes) é gerado.<br>
-   2. Processamento: Cada acesso desse conjunto é enviado sequencialmente para a política de cache que está sendo testada no momento (FIFO ou LFU).<br>
+   2. Processamento: Cada acesso desse conjunto é enviado sequencialmente para a política de cache que está sendo testada no momento (FIFO, LFU ou LRU).<br>
    3. Verificação de Estado (Hit/Miss): Para cada requisição, o sistema avalia onde o dado foi encontrado:
       - **Hit (Acerto):** O dado solicitado já estava presente e vem diretamente da memória cache instantaneamente, resultando em uma operação rápida.
       - **Miss (Falha):** O dado não é encontrado no cache. Consequentemente, o sistema aguarda a latência artificial do banco, busca o dado (operação custosa) e o insere no cache para acessos futuros, aplicando a regra de expulsão se a capacidade máxima tiver sido atingida.<br>
