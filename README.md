@@ -17,29 +17,41 @@ Este projeto foca no dilema da Computação através de um simulador de atendime
 - **LRU (Least Recently Used):** Estratégia baseada na recência de uso, descartando o que não é acessado há mais tempo.
 ------------------------------------------------------------------------------------------------------------------------------------
 ### 2. Objetivo<br>
-O objetivo central deste trabalho é analisar e comparar a eficiência estrutural das políticas FIFO, LFU e LRU. O desempenho é avaliado através das seguintes métricas:
+O objetivo central deste trabalho empírico é analisar a eficiência assintótica e prática das políticas FIFO, LRU e LFU sob uma carga de 50.000 acessos. O desempenho é avaliado quantitativamente através das seguintes métricas:
 - **Taxa de Acertos (Hits):** Quantidade de vezes que o dado solicitado já estava no cache.
-- **Taxa de Falhas (Misses):** Quantidade de vezes que foi necessário recorrer ao banco de dados principal.
-- **Quantidade de Acessos ao Banco:** Reflexo direto dos misses, representando o custo computacional e de I/O.
-- **Tempo Total de Execução:** Custo de latência, impactado pela complexidade do algoritmo de gerenciamento da estrutura do cache.
+- **Taxa de Falhas (Misses):** Quantidade de vezes que foi necessário recorrer ao banco de dados.
+- **Tempo Real de CPU:** Medição do custo de processamento dos algoritmos em nanossegundos/milissegundos.
+- **Latência Simulada:** Cálculo matemático do custo de I/O (ex: 1ms por Hit, 10ms por Miss) para refletir o impacto real em um servidor.
 ------------------------------------------------------------------------------------------------------------------------------------
 ### 3. Desenvolvimento e Metodologia<br>
-O projeto foi desenvolvido em linguagem Java, adotando princípios de Orientação a Objetos (padrão Strategy via interface genérica `CachePolicy<T>`) para permitir a troca de algoritmos de forma polimórfica, sem alterar a lógica principal de simulação.
+O projeto adota o padrão de projeto Strategy via interface genérica CachePolicy<T>, permitindo o intercâmbio dinâmico de algoritmos durante a simulação das 50.000 requisições.
 
 #### 3.1. Análise das Estruturas de Dados Utilizadas
-A eficiência de um cache depende da complexidade de tempo de suas operações. Abaixo, detalhamos a arquitetura de cada política:
-- **FIFO (First In, First Out):** Implementado utilizando a interface `Queue` (através de uma `LinkedList`) para manter a ordem cronológica de inserção. Para evitar a busca linear O(N) ao verificar se um paciente está no cache, a fila foi associada a um `HashSet`, garantindo acesso rápido em tempo constante O(1).
-- **LRU (Least Recently Used):** A política que remove o item que está há mais tempo sem ser acessado. Foi estruturada combinando um `HashMap` e uma Lista Duplamente Encadeada com nós "falsos" (`head` e `tail`). Essa união perfeita garante que tanto a verificação de existência quanto a atualização de prioridade (mover o nó para o topo) ocorram com complexidade O(1).
-- **LFU (Least Frequently Used):** A política que remove o item menos acessado historicamente. Foi mapeada utilizando um `HashMap` para buscas rápidas, integrado a uma Lista Duplamente Encadeada (`DoublyLinkedList`) customizada.
-#### 3.2. Modelagem Experimental
+Para garantir que o simulador não sofra gargalos de processamento com 50.000 acessos, os algoritmos foram desenhados para evitar varreduras lineares ($O(n)$).
+- **FIFO (First In, First Out):** Implementado utilizando um LinkedHashSet ou a interface Queue. Mantém a ordem cronológica de inserção e garante acesso rápido na verificação de existência do elemento.
+- **LRU (Least Recently Used):**  Estruturado com a combinação de um HashMap (para localização instantânea do dado em memória) e uma Lista Duplamente Encadeada (DoublyLinkedList) customizada. Quando um dado é acessado, ele é isolado e movido para o "topo" da lista mediante a simples troca de ponteiros.
+- **LFU (Least Frequently Used):**  A política mais complexa, implementada com múltiplos mapas (HashMap). Um mapa associa a chave à sua frequência, enquanto outro mapa associa uma frequência a um LinkedHashSet de chaves. O uso de uma variável sentinela minFrequencia elimina a necessidade de buscar a menor frequência iterativamente quando o cache enche.
+
+#### 3.2. Análise de Complexidade Assintótica
+Para garantir que o simulador escale e suporte grandes volumes de dados (ex: cargas de *stress test* com mais de 50.000 requisições), as estruturas foram projetadas para evitar varreduras lineares ($O(n)$).
+
+| Política de Cache | Estrutura Principal | Busca (Hit) | Inserção/Evicção |
+| :--- | :--- | :--- | :--- |
+| **FIFO** | `LinkedHashSet` | $O(1)$ | $O(1)$ |
+| **LRU** | `HashMap` + `DoublyLinkedList` | $O(1)$ | $O(1)$ |
+| **LFU** | Duplo `HashMap` + `LinkedHashSet` | $O(1)$ | $O(1)$ |
+
+*(Nota: O LFU atinge complexidade O(1) rastreando ativamente a frequência mínima em uma variável sentinela, eliminando a necessidade de buscar a menor frequência em caso de cache cheio).*
+
+#### 3.3. Modelagem Experimental
 Para testar a validade das políticas, foi criado um simulador de Banco de Dados que injeta um atraso artificial de 1ms (`Thread.sleep(1)`) a cada *miss*, representando o custo de I/O em disco.
 
-A geração de dados (`WorkloadGenerator`) cria cenários de teste controlados:
-- **Cenário A (Aleatório/Uniforme):** Acessos distribuídos igualmente entre todos os pacientes, servindo como base de comparação (baseline).
+* **LRU (Least Recently Used):** Implementado utilizando a combinação de um `HashMap` para localização instantânea do dado em memória e uma Lista Duplamente Encadeada (`DoublyLinkedList`) customizada para manter o histórico de temporalidade. Quando um dado é acessado, ele é movido para o início da lista em tempo constante.
 
-- **Cenário B (Temporalidade - LRU Friendly):** Simula pacientes que retornam em curto intervalo (localidade temporal), favorecendo algoritmos baseados em recência.
-
-- **Cenário C (Frequência - LFU Friendly):** Aplica a regra de Pareto, onde 20% dos pacientes concentram 70% dos acessos (casos crônicos), testando a inteligência estatística do cache.
+A geração de dados (`WorkloadGenerator`) cria cenários de teste controlados; Para medir o desempenho real dos algoritmos sem distorções causadas pelo bloqueio do processador, a simulação em larga escala não utiliza atrasos artificiais (como `Thread.sleep()`) para simular o I/O do banco de dados. Em vez disso, o tempo de execução puro das estruturas de dados é cronometrado via `System.nanoTime()`, enquanto a latência de disco é calculada matematicamente ao final do experimento, multiplicando o número de *misses* pelo custo teórico de acesso ao banco:
+- **Cenário A (Aleatório/Uniforme):** Acessos distribuídos uniformemente entre todos os pacientes cadastrados. Serve como base de comparação empírica (*baseline*).
+- **Cenário B (Temporalidade - LRU Friendly):** Simula pacientes que retornam ao posto em um curto intervalo de tempo (localidade temporal), favorecendo algoritmos baseados em recência.
+- **Cenário C (Frequência - LFU Friendly):** Aplica um viés estatístico inspirado na Regra de Pareto, onde uma minoria de pacientes (ex: casos crônicos) concentra a maior parte dos acessos do sistema (ex: 20% dos pacientes geram 70% das requisições). Este cenário testa a resiliência estatística do cache a longo prazo.
 ------------------------------------------------------------------------------------------------------------------------------------
 ### 4. Estrutura do Projeto
 ```text
@@ -68,18 +80,19 @@ O fluxo de execução do simulador segue um passo a passo estruturado para avali
    5. Resultados: Ao final da execução de toda a carga de testes, o desempenho total e o comparativo dos algoritmos são exibidos no console.<br>
 ------------------------------------------------------------------------------------------------------------------------------------
 ### 6. Como Compilar e Executar<br>
-- Passo 1: Compilação: Estando na raiz do projeto (cache-policies-analysis-main), execute o comando abaixo para gerar os binários na pasta out:
+- Passo 1: Compilação Estando na raiz do projeto (cache-policies-analysis-main), execute o comando abaixo para gerar os binários na pasta out:
 <br> `javac -d bin $(find src/main/java -name "*.java")` 
 
-- Passo 2: Execução: Ainda no diretório raiz, execute a classe principal de experimentos. Ela testará automaticamente caches de capacidades 10, 20 e 50 em uma base de 100 pacientes com 500 acessos simulados:
+- Passo 2: Execução Ainda no diretório raiz, execute a classe principal. Ela testará automaticamente caches de diferentes capacidades (ex: 100, 500, 1000 slots) contra a base de 50.000 acessos:
 <br> `java -cp bin br.com.cacheanalysis.simulacao.Experimentos`
 <br> Assim finalização a execução e simulação.
 
 ------------------------------------------------------------------------------------------------------------------------------------
-### 7. Conclusão<br>
-A execução do simulador demonstra que a eficiência de um sistema de saúde depende diretamente da escolha estratégica de estruturas de dados. A análise comparativa entre **FIFO, LFU e LRU** permite concluir que:
- - **Desempenho Geral:** A política correta reduz o tempo total de execução ao minimizar a latência de I/O do banco de dados, garantindo respostas mais rápidas em sistemas críticos.
- - **Inteligência vs. Custo:** Enquanto o **FIFO** prioriza a simplicidade com complexidade $O(1)$, políticas como **LRU** e **LFU** oferecem maior taxa de acertos (*hits*) em cenários de alta recorrência (pacientes crônicos), compensando sua maior complexidade estrutural.
- - **Otimização de Recursos:** A redução de *misses* preserva a integridade do servidor, evitando sobrecarga no banco de dados principal durante picos de demanda ambulatorial.
+### 7. Conclusão
+A execução deste simulador em escala de estresse (50.000 requisições) demonstra que a eficiência de um sistema de saúde não depende apenas de limitações de hardware, mas da escolha estratégica e da otimização de estruturas de dados. Ao garantir operações em tempo constante O(1) e evitar a degradação para O(n) sob alta carga, a análise comparativa entre as políticas **FIFO, LRU e LFU** permite concluir que:
 
-Em suma, o projeto confirma que não existe um algoritmo universal; a escolha da melhor política deve ser baseada no padrão de acessos (*workload*) real da instituição de saúde.
+- **Desempenho Geral:** A política correta reduz o tempo total de execução ao minimizar a latência de I/O do banco de dados, garantindo respostas mais rápidas em sistemas críticos.
+- **Inteligência vs. Custo Estrutural:** Enquanto o **FIFO** prioriza a extrema simplicidade de implementação, políticas avançadas como **LRU** e **LFU** exigem estruturas combinadas mais complexas (Mapas e Listas Duplamente Encadeadas). Contudo, compensam esse esforço arquitetônico entregando uma maior taxa de acertos (*hits*) em cenários de localidade temporal ou alta recorrência (pacientes crônicos).
+- **Otimização de Recursos:** A maximização de *hits* e a consequente redução de *misses* preservam a integridade do servidor, evitando a sobrecarga no banco de dados principal durante picos de demanda ambulatorial.
+
+Em suma, o projeto ratifica o princípio fundamental da disciplina: não existe um algoritmo universalmente perfeito. A escolha da política de substituição de cache depende estritamente do padrão de requisições (*workload*) e da distribuição de acessos da unidade de saúde, exigindo do engenheiro de software uma análise prévia minuciosa do comportamento dos dados.
