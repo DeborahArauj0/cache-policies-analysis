@@ -1,104 +1,96 @@
 package br.com.cacheanalysis.simulacao;
-
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
 
 /**
- * Classe responsável por gerar carga de trabalho (workloads)
- * utilizadas nos experimentos de simulação de políticas de cache.
+ * Gera cargas de trabalho (workloads) para os experimentos de análise de cache.
  *
- * Cada método representa um cenário distinto de padrão de acesso,
- * para avaliar o comportamento das políticas com diferentes
- * distribuições estatísticas.
+ * Cada método representa um cenário diferente de acesso a registros de pacientes:
+ *   - Cenário A: acessos completamente aleatórios (sem padrão)
+ *   - Cenário B: localidade temporal — pacientes recentes têm maior chance de ser acessados novamente
+ *   - Cenário C: concentração em pacientes crônicos — 70% dos acessos em 20% dos pacientes
  *
- * A geração utiliza uma SEED fixa para garantir reprodutibilidade
- * dos experimentos.
+ * A SEED fixa (42) garante que toda execução produza a mesma sequência aleatória,
+ * permitindo reprodutibilidade rigorosa nos experimentos.
  */
 public class WorkloadGenerator {
 
-    /**
-     * Seed fixa para a geração pseudoaleatória.
-     *
-     * Garante que todos os experimentos sejam reproduzíveis,
-     * produzindo a mesma sequência de acessos a cada execução.
-     */
+    // Semente fixa usada em todos os geradores para garantir resultados reproduzíveis
     private static final int SEED = 42;
 
     /**
-     * Cenário A — Acesso Aleatório Uniforme (Baseline).
+     * Cenário A — Acesso aleatório uniforme.
      *
-     * Todos os pacientes possuem a mesma probabilidade de serem acessados.
-     * Distribuição uniforme sem padrão de repetição significativo.
+     * Gera uma sequência de IDs de pacientes sem nenhum padrão de repetição.
+     * Cada acesso sorteia qualquer paciente com igual probabilidade.
+     * Representa o pior caso para caches, pois não há localidade de referência.
      *
-     * Este cenário serve como base de comparação empírica (baseline):
-     * sem localidade temporal nem frequência concentrada, nenhuma política
-     * se destaca de forma consistente.
-     *
-     * @param totalPacientes número total de pacientes possíveis
-     * @param totalAcessos   número total de acessos a serem gerados
-     * @return lista com a sequência simulada de acessos
+     * @param totalPacientes número total de pacientes disponíveis
+     * @param totalAcessos   quantidade de acessos a gerar
+     * @return lista de IDs de pacientes na ordem de acesso
      */
     public static List<Integer> gerarCenarioA(int totalPacientes, int totalAcessos) {
         Random random = new Random(SEED);
-        List<Integer> acessos = new ArrayList<>();
+        List<Integer> acessos = new ArrayList<>(totalAcessos);
 
+        // Gera 'totalAcessos' IDs aleatórios no intervalo [1, totalPacientes]
         for (int i = 0; i < totalAcessos; i++) {
-            int id = random.nextInt(totalPacientes) + 1;
-            acessos.add(id);
+            acessos.add(random.nextInt(totalPacientes) + 1);
         }
 
         return acessos;
     }
 
     /**
-     * Cenário B — Temporalidade / LRU Friendly.
+     * Cenário B — Localidade temporal com janela deslizante.
      *
-     * Simula pacientes que retornam ao posto em curto intervalo de tempo,
-     * criando localidade temporal. Uma janela deslizante rastreia os pacientes
-     * recentemente acessados:
-     * - 80% de chance de repetir um paciente da janela recente
-     * - 20% de chance de acessar um paciente novo (aleatório)
+     * Simula o comportamento real de sistemas hospitalares onde pacientes
+     * atendidos recentemente tendem a ser acessados novamente em breve.
      *
-     * Favorece políticas baseadas em recência (LRU).
+     * Regra de acesso:
+     *   - 80% de chance: reutiliza um paciente já presente na janela dos 10 mais recentes
+     *   - 20% de chance: acessa um paciente novo qualquer
      *
-     * Janela implementada com ArrayList de tamanho fixo (máx. 10 elementos):
-     * acesso por índice é O(1) sem alocação. O remove(0) custa no máximo
-     * O(10) — custo fixo e irrelevante na prática.
+     * A janela deslizante é implementada como um buffer circular de tamanho 10,
+     * garantindo inserção e leitura em O(1), sem realocações ou deslocamentos de memória.
      *
-     * @param totalPacientes número total de pacientes possíveis
-     * @param totalAcessos   número total de acessos a serem gerados
-     * @return lista com a sequência simulada de acessos
+     * @param totalPacientes número total de pacientes disponíveis
+     * @param totalAcessos   quantidade de acessos a gerar
+     * @return lista de IDs de pacientes na ordem de acesso
      */
     public static List<Integer> gerarCenarioB(int totalPacientes, int totalAcessos) {
         Random random = new Random(SEED);
-        List<Integer> acessos = new ArrayList<>();
+        List<Integer> acessos = new ArrayList<>(totalAcessos);
 
-        // ArrayDeque: remoção da cabeça é O(1) (correção do ArrayList.remove(0) que era
-        // ArrayList com capacidade inicial fixa: acesso por índice é O(1) sem alocação.
-        // A janela tem no máximo 10 elementos, então remove(0) custa no máximo O(10).
-        List<Integer> janelaRecente = new ArrayList<>(10);
-        int tamanhoJanela = 10;
+        // Buffer circular para janela deslizante: garante acesso e substituição em O(1) puro
+        int[] janela = new int[10];  // armazena os 10 pacientes acessados mais recentemente
+        int tamanhoJanela = 0;       // quantos slots da janela já foram preenchidos
+        int indiceInsercao = 0;      // ponteiro que indica onde o próximo ID será inserido
 
         for (int i = 0; i < totalAcessos; i++) {
-            double probabilidade = random.nextDouble();
             int id;
 
-            if (!janelaRecente.isEmpty() && probabilidade < 0.8) {
-                // 80%: repete um paciente recente — O(1) direto, sem criar array
-                int idx = random.nextInt(janelaRecente.size());
-                id = janelaRecente.get(idx);
+            if (tamanhoJanela > 0 && random.nextDouble() < 0.8) {
+                // 80%: escolhe paciente da janela em O(1)
+                int idxAleatorio = random.nextInt(tamanhoJanela);
+                id = janela[idxAleatorio];
             } else {
-                // 20%: acessa um paciente novo
+                // 20%: paciente novo aleatório fora da janela
                 id = random.nextInt(totalPacientes) + 1;
             }
 
             acessos.add(id);
 
-            // Atualiza janela deslizante
-            janelaRecente.add(id);
-            if (janelaRecente.size() > tamanhoJanela) {
-                janelaRecente.remove(0); // O(10) no máximo — custo fixo e mínimo
+            // Atualiza janela circular em O(1) sem custo de shift ou alocação
+            if (tamanhoJanela < 10) {
+                // Janela ainda não está cheia: preenche os slots sequencialmente
+                janela[tamanhoJanela] = id;
+                tamanhoJanela++;
+            } else {
+                // Janela cheia: sobrescreve o elemento mais antigo (comportamento FIFO)
+                janela[indiceInsercao] = id;
+                indiceInsercao = (indiceInsercao + 1) % 10; // avança o ponteiro circularmente
             }
         }
 
@@ -106,33 +98,39 @@ public class WorkloadGenerator {
     }
 
     /**
-     * Cenário C — Frequência / LFU Friendly (Regra de Pareto).
+     * Cenário C — Concentração em pacientes crônicos (distribuição de Pareto).
      *
-     * Aplica um viés estatístico inspirado na Regra de Pareto:
-     * 20% dos pacientes (casos crônicos) concentram 70% dos acessos.
+     * Simula hospitais onde uma minoria de pacientes crônicos concentra
+     * a maior parte dos atendimentos — padrão conhecido como regra 80/20.
      *
-     * - 70%: acessa um paciente do grupo "crônico" (primeiros 20% dos IDs)
-     * - 30%: acessa qualquer paciente aleatoriamente
+     * Os pacientes crônicos correspondem aos primeiros 20% dos IDs (corteCronicos).
      *
-     * Favorece políticas baseadas em frequência histórica (LFU).
+     * Regra de acesso:
+     *   - 70% de chance: acessa um paciente crônico (primeiros 20% dos IDs)
+     *   - 30% de chance: acessa qualquer paciente aleatoriamente
      *
-     * @param totalPacientes número total de pacientes possíveis
-     * @param totalAcessos   número total de acessos a serem gerados
-     * @return lista com a sequência simulada de acessos
+     * É o cenário mais favorável para caches, pois um pequeno conjunto de
+     * registros responde pela maioria dos acessos.
+     *
+     * @param totalPacientes número total de pacientes disponíveis
+     * @param totalAcessos   quantidade de acessos a gerar
+     * @return lista de IDs de pacientes na ordem de acesso
      */
     public static List<Integer> gerarCenarioC(int totalPacientes, int totalAcessos) {
         Random random = new Random(SEED);
-        List<Integer> acessos = new ArrayList<>();
+        List<Integer> acessos = new ArrayList<>(totalAcessos);
+
+        // Define o limite superior dos IDs considerados "crônicos" (20% do total, mínimo 1)
+        int corteCronicos = Math.max(1, totalPacientes / 5);
 
         for (int i = 0; i < totalAcessos; i++) {
-            double probabilidade = random.nextDouble();
             int id;
 
-            if (probabilidade < 0.7) {
-                // 70% dos acessos vão para os 20% mais frequentes (pacientes crônicos)
-                id = random.nextInt(totalPacientes / 5) + 1;
+            if (random.nextDouble() < 0.7) {
+                // 70% dos acessos nos 20% primeiros IDs (pacientes crônicos)
+                id = random.nextInt(corteCronicos) + 1;
             } else {
-                // 30% restantes acessam qualquer paciente
+                // 30%: qualquer paciente no universo completo
                 id = random.nextInt(totalPacientes) + 1;
             }
 
