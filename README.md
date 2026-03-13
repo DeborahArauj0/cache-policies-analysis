@@ -9,10 +9,10 @@
 - Teones Alex Lira de Farias Filho
 
 ### Documento do projeto:<br>
-https://docs.google.com/document/d/1kaUEZov6HEL2luhc6fQw7EsyArWNKysm/edit?usp=sharing&ouid=106442824714548305124&rtpof=true&sd=true
+https://docs.google.com/document/d/1LGNGWCBxMQCee61v-uEXa7wA03g12zX1/edit?usp=sharing&ouid=108433462616185150415&rtpof=true&sd=true
 
 ### Relatório do projeto:<br>
-https://docs.google.com/document/d/1lyrMzJ-55yJK_MlIjvBD38Hob6t6xC7bt41ayEYId-4/edit?usp=sharing
+https://docs.google.com/document/d/1kaUEZov6HEL2luhc6fQw7EsyArWNKysm/edit?usp=sharing&ouid=106442824714548305124&rtpof=true&sd=true
 
 ---
 ## 1. Visão Geral
