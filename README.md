@@ -11,15 +11,14 @@
 ### Documento do projeto:<br>
 https://docs.google.com/document/d/1kaUEZov6HEL2luhc6fQw7EsyArWNKysm/edit?usp=sharing&ouid=106442824714548305124&rtpof=true&sd=true
 
-
 ### Relatório do projeto:<br>
 https://docs.google.com/document/d/1lyrMzJ-55yJK_MlIjvBD38Hob6t6xC7bt41ayEYId-4/edit?usp=sharing
 
 ---
 ## 1. Visão Geral
-Este projeto implementa e compara três políticas de substituição de cache aplicadas a um simulador de sistema de saúde. O objetivo é demonstrar como a escolha da estrutura de dados impacta diretamente o desempenho de um sistema real.
+Este projeto implementa e compara três políticas de substituição de cache — FIFO, LRU e LFU — aplicadas a um simulador de sistema de saúde ambulatorial. O objetivo é demonstrar como a escolha da estrutura de dados impacta diretamente o desempenho de um sistema real que acessa prontuários de pacientes.
 
-O simulador processa sequências de acessos a prontuários de pacientes e mede quatro métricas principais:
+O simulador processa sequências de acessos a prontuários e coleta quatro métricas por experimento:
 - **Hits** — acessos atendidos diretamente pelo cache (rápido, sem I/O)
 - **Misses** — acessos que exigiram consulta ao banco de dados (custoso)
 - **Tempo de CPU** — custo real das estruturas de dados em nanossegundos
@@ -28,22 +27,30 @@ O simulador processa sequências de acessos a prontuários de pacientes e mede q
 
 ## 2. Estrutura do Projeto
 ```
-"cache-policies-analysis
+cache-policies-analysis/
+├── gerar_graficos.py                          — Script Python para gerar os gráficos PNG
+├── resultados_experimentos.csv                — Saída dos experimentos Java
+├── graficos/
+│   ├── grafico_hit_rate_cenario_a.png         — Gráfico: hit rate Cenário A
+│   ├── grafico_hit_rate_cenario_b.png         — Gráfico: hit rate Cenário B
+│   ├── grafico_hit_rate_cenario_c.png         — Gráfico: hit rate Cenário C
+│   └── grafico_tempo_cpu.png                  — Gráfico: comprovação O(1)
 └── src/main/java/br/com/cacheanalysis/
     ├── cache/
     │   ├── CachePolicy.java          — Interface genérica (contrato das políticas)
-    │   ├── FIFOCache.java            — Implementação First In, First Out
+    │   ├── FIFOCache.java            — Implementação First-In, First-Out
     │   ├── LFUCache.java             — Implementação Least Frequently Used
     │   └── LRUCache.java             — Implementação Least Recently Used
-    └── simulacao/
-        ├── BancoDeDadosSimulado.java — Mock do banco de dados com latência opcional
-        ├── WorkloadGenerator.java    — Gerador dos três cenários de acesso
-        └── Experimentos.java         — Classe principal: executa testes e salva CSV
+    ├── simulacao/
+    │   ├── BancoDeDadosSimulado.java — Mock do banco com latência opcional
+    │   ├── WorkloadGenerator.java    — Gerador dos três cenários de acesso
+    │   └── Experimentos.java         — Classe principal: warm-up, execução e CSV
+    └── testes/
+        └── TesteEstruturas.java      — Suíte de testes unitários das políticas
 ```
-
 ---
 ## 3. Interface `CachePolicy<T>`
-Define o contrato que todas as políticas devem implementar. Usa generics para aceitar qualquer tipo de chave.
+Define o contrato implementado pelas três políticas. O uso de generics permite que a interface aceite qualquer tipo de chave, tornando o simulador reutilizável além do contexto de IDs inteiros.
 
 ```java
 public interface CachePolicy<T> {
@@ -55,24 +62,23 @@ public interface CachePolicy<T> {
 
 | Método | Descrição |
 |--------|-----------|
-| `access(key)` | Tenta acessar uma chave. Retorna `true` se já estava em cache (HIT) ou `false` se não estava (MISS) |
+| `access(key)` |Tenta acessar uma chave. Retorna true (HIT) se já estava em cache, false (MISS) caso contrário |
 | `getHits()` | Contador acumulado de acertos |
 | `getMisses()` | Contador acumulado de falhas |
 
 ---
 ## 4. `FIFOCache` — First In, First Out
-O item que entrou primeiro é o primeiro a sair quando o cache está cheio. Estratégia simples, sem considerar frequência ou recência de acesso.
+O item que entrou primeiro é o primeiro a ser removido quando o cache está cheio. Estratégia simples, sem considerar frequência ou recência de acesso.
 
 ### Estruturas internas
 | Estrutura | Tipo Java | Finalidade |
 |-----------|-----------|------------|
 | `queue` | `Queue<T>` (LinkedList) | Mantém a ordem cronológica de chegada |
-| `cacheSet` | `Set<T>` (HashSet) | Verifica a presença de um item em O(1) |
+| `cacheSet` | `Set<T>` (HashSet) |Verifica presença em O(1); inicializado com capacity e load factor 1.0f para evitar rehashing |
 
 ### Fluxo de `access(key)`
-**HIT:** `cacheSet.contains(key)` retorna `true` → incrementa `hits` → retorna `true`.
-
-**MISS:** incrementa `misses`. Se o cache estiver cheio, `queue.poll()` remove o item mais antigo e `cacheSet.remove()` o exclui do conjunto. Em seguida, o novo item é inserido com `queue.offer()` e `cacheSet.add()`.
+- **HIT:** cacheSet.contains(key) retorna true → incrementa hits → retorna true.
+- **MISS:** incrementa misses. Se queue.size() >= capacity, queue.poll() remove o mais antigo e cacheSet.remove() o exclui. O novo item é inserido com queue.offer() e cacheSet.add().
 
 ### Complexidade
 | Operação | Complexidade | Motivo |
@@ -82,238 +88,237 @@ O item que entrou primeiro é o primeiro a sair quando o cache está cheio. Estr
 
 ---
 ## 5. `LRUCache` — Least Recently Used
-Descarta o item que não é acessado há mais tempo. É o mais indicado para sistemas com localidade temporal, como retornos frequentes de pacientes em curto intervalo.
+Descarta o item que não é acessado há mais tempo. Ideal para sistemas com localidade temporal, como retornos frequentes de pacientes em curto intervalo.
 
 ### Estruturas internas
 
 | Estrutura | Tipo Java | Finalidade |
 |-----------|-----------|------------|
 | `cache` | `HashMap<T, Node<T>>` | Localiza qualquer nó em O(1) pelo valor da chave |
-| Lista duplamente encadeada | `Node<T>` (customizada) | Mantém a ordem de recência com dois nós sentinela (`head` e `tail`) |
+| Lista duplamente encadeada | `Node<T>` (customizada) |  customizadaMantém a ordem de recência; nós sentinela head e tail eliminam verificações de borda |
 
-A lista possui dois nós fantasmas fixos (`head` e `tail`). Os itens reais ficam entre eles: o mais recente fica logo após `head`, e o mais antigo fica logo antes de `tail`.
+Os itens reais ficam entre os sentinelas: o mais recente logo após head, o mais antigo logo antes de tail. 
 
 ### Fluxo de `access(key)`
 
-**HIT:** localiza o nó via `HashMap` → `moveToHead(node)` reposiciona o nó em O(1) trocando ponteiros → retorna `true`.
+**HIT:** localiza o nó via `HashMap` → `moveToHead(node)` reposiciona em O(1) trocando ponteiros → retorna `true`.
 
-**MISS:** se o cache estiver cheio, `removeTail()` remove o nó imediatamente antes de `tail` e o apaga do `HashMap`. Em seguida, um novo nó é criado e adicionado à `head` → retorna `false`.
+**MISS:** se `cache.size() >= capacity`, `removeTail()` apaga o nó imediatamente antes de `tail` e o remove do `HashMap`. Um novo nó é criado e inserido em `head` → retorna `false`.
 
 ### Complexidade
+
 | Operação | Complexidade | Motivo |
-|----------|-------------|--------|
+|---|---|---|
 | Verificar presença (HIT) | O(1) | `HashMap.get()` |
 | Mover para o topo | O(1) | Troca de ponteiros na lista encadeada |
 | Inserção / Evicção | O(1) | Acesso direto pelo nó sentinela `tail` |
 
 ---
-
 ## 6. `LFUCache` — Least Frequently Used
-Descarta o item que foi acessado o menor número de vezes. Em caso de empate de frequência, remove o mais antigo (FIFO dentro da mesma frequência). É o mais indicado para sistemas com pacientes crônicos acessados repetidamente.
+
+Descarta o item menos acessado historicamente. Em empate de frequência, remove o mais antigo (FIFO dentro da mesma frequência). Ideal para sistemas com pacientes crônicos de alta recorrência.
 
 ### Estruturas internas
+
 | Estrutura | Tipo Java | Finalidade |
-|-----------|-----------|------------|
-| `cacheMap` | `HashMap<T, Integer>` | Mapeia cada chave à sua frequência atual |
-| `freqMap` | `HashMap<Integer, LinkedHashSet<T>>` | Mapeia cada frequência ao conjunto de chaves com aquela frequência, preservando ordem de inserção |
-| `minFrequencia` | `int` | Sentinela que rastreia a menor frequência ativa, evitando buscas lineares |
+|---|---|---|
+| `cacheMap` | `HashMap<T, Integer>` | Mapeia cada chave à sua frequência atual; inicializado com `load factor 1.0f` para evitar rehashing |
+| `freqMap` | `HashMap<Integer, LinkedHashSet<T>>` | Mapeia cada frequência ao conjunto de chaves com aquela frequência, preservando ordem de inserção para tiebreak FIFO |
+| `minFrequencia` | `int` | Sentinela que aponta para a menor frequência ativa, permitindo evicção em O(1) sem busca linear |
 
 ### Fluxo de `access(key)`
-**HIT:** busca a frequência atual em `cacheMap` → remove a chave do conjunto da frequência atual em `freqMap` → se esse conjunto ficou vazio, remove o bucket do mapa e, se era o mínimo, incrementa `minFrequencia` → insere a chave no conjunto da frequência + 1.
 
-**MISS:** se o cache estiver cheio, obtém o `LinkedHashSet` de `minFrequencia` e remove o primeiro elemento (mais antigo com menor frequência). Em seguida, insere a nova chave com frequência 1 e define `minFrequencia = 1`.
+**HIT:** chama `atualizarFrequencia(key)` — move a chave do bucket atual para o bucket `freq+1` em `freqMap`; se o bucket ficou vazio, remove-o e avança `minFrequencia` se necessário.
+
+**MISS:** se cheio, chama `removerElementoMenosFrequente()` — obtém o bucket de `minFrequencia` e remove o primeiro elemento do `LinkedHashSet` (o mais antigo com menor frequência). Insere nova chave com frequência 1 e define `minFrequencia = 1`.
 
 ### Complexidade
+
 | Operação | Complexidade | Motivo |
-|----------|-------------|--------|
+|---|---|---|
 | Verificar presença (HIT) | O(1) | `HashMap.containsKey()` |
 | Incrementar frequência | O(1) | `HashMap` + `LinkedHashSet` |
-| Evicção (MISS com cache cheio) | O(1) | `minFrequencia` aponta diretamente para o conjunto alvo |
+| Evicção | O(1) | `minFrequencia` aponta diretamente para o bucket alvo |
 
 ---
 ## 7. `WorkloadGenerator` — Gerador de Cenários
-Gera as sequências de IDs de pacientes processadas nos experimentos. A **SEED fixa (42)** garante que cada execução produza exatamente os mesmos dados, tornando os experimentos reproduzíveis.
+
+Gera as sequências de IDs de pacientes usadas nos experimentos. A **seed fixa (42)** garante reprodutibilidade total — toda execução produz exatamente a mesma sequência. Todos os `ArrayList` são inicializados com `new ArrayList<>(totalAcessos)` para evitar realocações durante a geração.
 
 ### Cenário A — Acesso Aleatório Uniforme (Baseline)
-Todos os pacientes têm a mesma probabilidade de serem acessados. Sem padrão de repetição significativo, serve como base de comparação entre as políticas.
+
+Todos os pacientes têm igual probabilidade de ser acessados. Sem padrão de repetição, representa o pior caso para caches e serve como base de comparação entre as políticas.
 
 ```java
-int id = random.nextInt(totalPacientes) + 1;
+acessos.add(random.nextInt(totalPacientes) + 1);
 ```
 
-### Cenário B — Temporalidade (LRU Friendly)
-Simula pacientes que retornam ao posto em curto intervalo de tempo, criando localidade temporal. Uma janela deslizante (tamanho 10) rastreia os pacientes recentemente acessados:
-- **80%** de chance de repetir um paciente da janela recente
-- **20%** de chance de acessar um paciente novo
+### Cenário B — Localidade Temporal (LRU-Friendly)
 
-A janela deslizante é implementada com `ArrayList` de tamanho fixo (máx. 10 elementos). O acesso por índice é O(1) sem alocação, e o `remove(0)` custa no máximo O(10) — custo fixo e irrelevante na prática. Favorece o **LRU**.
+Simula pacientes que retornam ao posto em curto intervalo, criando localidade temporal. A janela deslizante é implementada como um **buffer circular** com array primitivo `int[10]`, eliminando qualquer alocação de memória ou deslocamento de elementos.
 
-### Cenário C — Frequência / Regra de Pareto (LFU Friendly)
-Aplica viés estatístico: 20% dos pacientes (casos crônicos) concentram 70% dos acessos.
-- **70%** dos acessos vão para o grupo dos primeiros 20% de IDs (pacientes crônicos)
-- **30%** restantes acessam qualquer paciente aleatoriamente
+```
+- 80% de chance: reutiliza paciente da janela dos 10 mais recentes — O(1) puro
+- 20% de chance: acessa paciente novo aleatório
+```
 
+O ponteiro `indiceInsercao` avança com `(indiceInsercao + 1) % 10`, sobrescrevendo circularmente o elemento mais antigo sem nenhuma alocação adicional. Favorece o **LRU**.
+
+### Cenário C — Frequência / Pareto (LFU-Friendly)
+
+Aplica viés estatístico inspirado na regra 80/20. O corte de crônicos é calculado com `Math.max(1, totalPacientes / 5)` para garantir que nunca seja zero independentemente do tamanho da base.
+
+```
+- 70% dos acessos nos primeiros 20% dos IDs (pacientes crônicos)
+- 30% restantes: qualquer paciente no universo completo
+```
 Favorece o **LFU**.
 
 ### Resumo dos cenários
+
 | Cenário | Padrão de Acesso | Política Favorecida |
-|---------|-----------------|---------------------|
+|---|---|---|
 | A — Uniforme | Todos os pacientes com igual probabilidade | Nenhuma (baseline) |
-| B — Temporalidade | 80% repetem pacientes recentes | LRU |
-| C — Frequência (Pareto) | 70% concentrados em 20% dos pacientes | LFU |
+| B — Temporalidade | 80% repetem pacientes recentes (buffer circular) | LRU |
+| C — Pareto | 70% concentrados em 20% dos pacientes | LFU |
+
 ---
 
 ## 8. `BancoDeDadosSimulado`
-Simula um banco de dados com registros de prontuários. Oferece dois modos de operação:
-- **Com latência** (`comLatencia = true`): aplica `Thread.sleep(1)` por acesso, representando o custo de I/O em disco. Indicado para demonstrações em pequena escala.
+
+Simula um banco de dados com registros de prontuários. Oferece dois modos:
+
+- **Com latência** (`comLatencia = true`): aplica `Thread.sleep(1)` por acesso, representando custo de I/O em disco. Para demonstrações em pequena escala.
 - **Sem latência** (`comLatencia = false`, padrão): modo rápido para experimentos de larga escala, onde o sleep distorceria a medição de CPU.
 
-```java
-public String buscarPaciente(int id) {
-    totalBuscas++;
-    if (comLatencia) {
-        try {
-            Thread.sleep(1); // simula latência de disco
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-        }
-    }
-    return pacientes.get(id);
-}
-```
-
-> **Sobre a medição de tempo:** em `Experimentos.java`, o banco é instanciado com `comLatencia = false`. O `Thread.sleep` não é executado, portanto não distorce o `TempoTotal_ns`. Nos misses, o banco é consultado via `buscarPaciente(id)` e contabiliza os acessos reais em `getTotalBuscas()`. A latência de I/O é calculada matematicamente ao final de cada experimento (`hits × 1 ms + misses × 10 ms`).
+Em `Experimentos.java`, o banco é sempre instanciado sem latência. A latência de I/O é calculada matematicamente ao final: `hits × 1 ms + misses × 10 ms`.
 
 ---
 ## 9. `Experimentos` — Classe Principal
-Coordena todos os testes e salva os resultados em CSV. Para cada combinação de **cenário × base de pacientes × capacidade**, as três políticas são testadas com a mesma sequência de acessos.
+
+Coordena todos os testes, salva os resultados em CSV e inclui **warm-up de JVM** para garantir medições de tempo confiáveis.
+
+### Warm-up da JVM
+
+Antes de qualquer medição, `realizarWarmUp()` executa 25.000 acessos descartáveis em cada política, forçando o compilador JIT a otimizar o código antes dos experimentos reais.
+
+```java
+private static void realizarWarmUp() {
+    int iteracoes = 25000;
+    CachePolicy<Integer> lru = new LRUCache<>(1000);
+    CachePolicy<Integer> lfu = new LFUCache<>(1000);
+    CachePolicy<Integer> fifo = new FIFOCache<>(1000);
+    for (int i = 0; i < iteracoes; i++) {
+        int key = i % 2000;
+        lru.access(key); lfu.access(key); fifo.access(key);
+    }
+}
+```
 
 ### Configurações testadas
+
 | Parâmetro | Valores |
-|-----------|---------|
+|---|---|
 | Bases de pacientes | 1.000 / 10.000 / 50.000 |
 | Total de acessos | base × 5 |
 | Capacidades de cache | 10, 50, 100, 500, 1.000, 5.000, 10.000, 50.000 |
 
 ### Colunas do CSV de saída
+
 | Coluna | Descrição |
-|--------|-----------|
+|---|---|
 | `Cenario` | A, B ou C |
-| `BasePacientes` | Tamanho do banco de dados simulado |
+| `BasePacientes` | Tamanho do banco simulado |
 | `TotalAcessos` | Número total de requisições processadas |
 | `Capacidade` | Slots disponíveis no cache |
 | `Politica` | FIFO, LFU ou LRU |
 | `Hits` / `Misses` | Contadores de acerto e falha |
-| `AcessosBanco` | Número de consultas efetivas ao banco, contabilizadas via `bancoLocal.getTotalBuscas()` |
-| `TempoTotal_ns` | Tempo real de CPU sem latência artificial |
-| `LatenciaSimulada_ms` | Custo estimado de I/O: `hits×1ms + misses×10ms` |
-
-### Fluxo de `executarExperimento`
-1. Itera sobre todos os IDs da sequência: chama `cache.access(id)`; se MISS, consulta `bancoLocal.buscarPaciente(id)`
-2. Cronometra o bloco com `System.nanoTime()` (banco instanciado sem `Thread.sleep`)
-3. Coleta `acessosBanco = bancoLocal.getTotalBuscas()`
-4. Calcula `latenciaSimulada = hits × 1ms + misses × 10ms`
-5. Imprime o resultado no console e grava a linha no CSV
+| `AcessosBanco` | Consultas ao banco via `bancoLocal.getTotalBuscas()` |
+| `TempoTotal_ns` | Tempo real de CPU sem latência artificial (pós warm-up) |
+| `LatenciaSimulada_ms` | Custo estimado: `hits × 1 ms + misses × 10 ms` |
 
 ---
+## 10. `TesteEstruturas` — Testes Unitários
 
-## 10. Análise de Complexidade Assintótica
+A classe `TesteEstruturas` é uma suíte de testes sem dependências externas que valida o comportamento de evicção de cada política com cenários determinísticos. Os testes usam um método utilitário `assertEquals(boolean, boolean, String)` próprio, que lança `AssertionError` com mensagem descritiva em caso de falha, interrompendo a execução imediatamente com código de saída 1.
+
+### Teste FIFO
+
+```
+Inserção: [1, 2, 3] → capacidade máxima atingida
+Acesso a 4 → evicta o elemento 1 (mais antigo)
+Estado esperado: [2, 3, 4]
+```
+
+Verifica que 2, 3 e 4 geram HIT, e que 1 gera MISS (foi evictado).
+
+### Teste LRU
+
+```
+Inserção: [1, 2, 3]
+Acesso a 1 → torna 1 o mais recentemente usado
+Acesso a 4 → evicta o elemento 2 (menos recentemente usado)
+Estado esperado: [3, 1, 4]
+```
+
+Verifica que 1, 3 e 4 geram HIT, e que 2 gera MISS (evictado por ser o LRU).
+
+### Teste LFU
+
+```
+Inserção: 1 acessado 2×(freq 2), 2 acessado 1× (freq 1), 3 acessado 1× (freq 1)
+Acesso a 4 → empate entre 2 e 3 (freq 1); evicta 2 por ser mais antigo (tiebreak FIFO)
+Estado esperado: [1, 3, 4]
+```
+
+Verifica que 3, 1 e 4 geram HIT, e que 2 gera MISS (evictado pelo critério de desempate temporal).
+
+### Como executar os testes
+
+```bash
+java -cp bin br.com.cacheanalysis.testes.TesteEstruturas
+```
+
+Saída esperada em caso de sucesso:
+
+```
+Iniciando execução da suíte de testes unitários...
+
+✅ FIFOCache: Comportamento de evicção validado com sucesso.
+✅ LRUCache: Comportamento de evicção validado com sucesso.
+✅ LFUCache: Comportamento de evicção validado com sucesso.
+
+✅ Todos os testes unitários foram concluídos sem erros. As estruturas operam conforme as especificações.
+```
+---
+## 11. `gerar_graficos.py` — Visualização dos Resultados
+
+Script Python que lê o CSV gerado pelo Java e produz 4 gráficos PNG usando `pandas` e `matplotlib`. Todos os gráficos são filtrados para a base de 50.000 pacientes (maior escala).
+
+| Arquivo gerado | Conteúdo |
+|---|---|
+| `graficos/grafico_tempo_cpu.png` | Tempo de CPU por acesso (ns) × capacidade — comprovação visual do O(1) |
+| `graficos/grafico_hit_rate_cenario_a.png` | Hit rate (%) × capacidade — Cenário A (Uniforme) |
+| `graficos/grafico_hit_rate_cenario_b.png` | Hit rate (%) × capacidade — Cenário B (Temporal) |
+| `graficos/grafico_hit_rate_cenario_c.png` | Hit rate (%) × capacidade — Cenário C (Pareto) |
+
+```bash
+pip install pandas matplotlib
+python gerar_graficos.py
+```
+---
+
+## 12. Análise de Complexidade Assintótica
+
 | Política | Estrutura Principal | Busca (HIT) | Inserção / Evicção |
-|----------|--------------------|-----------|--------------------|
-| **FIFO** | `Queue` + `HashSet` | O(1) | O(1) |
+|---|---|---|---|
+| **FIFO** | `Queue` + `HashSet` (load factor 1.0) | O(1) | O(1) |
 | **LRU** | `HashMap` + Lista Duplamente Encadeada | O(1) | O(1) |
-| **LFU** | Duplo `HashMap` + `LinkedHashSet` | O(1) | O(1) |
+| **LFU** | Duplo `HashMap` (load factor 1.0) + `LinkedHashSet` | O(1) | O(1) |
 
-> O LFU atinge O(1) na evicção porque a variável `minFrequencia` aponta diretamente para o conjunto de menor frequência, eliminando a necessidade de busca linear.
----
+Todas as três políticas atingem O(1) em todas as operações. O LFU alcança O(1) na evicção porque `minFrequencia` aponta diretamente para o bucket de menor frequência, eliminando qualquer busca linear.
 
-## 11. Resultados dos Experimentos
-Os gráficos abaixo foram gerados a partir do arquivo `resultados_experimentos.csv`, com base de 50.000 pacientes (o cenário de maior escala).
-
-### 11.1 Taxa de Hit por Capacidade — Cenário A (Uniforme, base 50k)
-```mermaid
-xychart-beta
-    title "Taxa de Hit (%) — Cenário A, Base 50.000"
-    x-axis ["Cap 10", "Cap 50", "Cap 100", "Cap 500", "Cap 1k", "Cap 5k", "Cap 10k", "Cap 50k"]
-    y-axis "Hit Rate (%)" 0 --> 100
-    line [0.06, 0.29, 0.56, 2.91, 5.81, 26.74, 46.29, 83.54]
-    line [0.08, 0.34, 0.63, 3.03, 5.93, 28.10, 51.17, 83.54]
-    line [0.06, 0.29, 0.56, 2.92, 5.86, 27.99, 51.32, 83.54]
-```
-
-> 🔵 1ª linha: FIFO · 🟢 2ª linha: LFU · 🔴 3ª linha: LRU — No cenário uniforme (sem padrão), as três políticas convergem para o mesmo resultado em altas capacidades.
-
----
-
-### 11.2 Comparação de Hits — Cenário B vs C (Capacidade 5.000, base 50k)
-```mermaid
-xychart-beta
-    title "Hits Absolutos — Cap 5.000, Base 50.000 pacientes"
-    x-axis ["Cen. B FIFO", "Cen. B LFU", "Cen. B LRU", "Cen. C FIFO", "Cen. C LFU", "Cen. C LRU"]
-    y-axis "Hits" 30000 --> 80000
-    bar [36854, 39688, 39695, 66850, 70244, 69964]
-```
-
-> No **Cenário B** (temporalidade), LRU e LFU se equiparam. No **Cenário C** (Pareto), LFU e LRU superam FIFO por ~5%.
-
----
-
-### 11.3 Latência Simulada por Política — Capacidade 1.000, base 50k
-Fórmula: `hits × 1ms + misses × 10ms`
-
-```mermaid
-xychart-beta
-    title "Latência Simulada (ms) — Cap 1.000, Base 50.000"
-    x-axis ["Cen. A FIFO", "Cen. A LFU", "Cen. A LRU", "Cen. B FIFO", "Cen. B LFU", "Cen. B LRU", "Cen. C FIFO", "Cen. C LFU", "Cen. C LRU"]
-    y-axis "Latência (ms)" 2300000 --> 2520000
-    bar [2354919, 2351830, 2353584, 366820, 360681, 360230, 2354747, 2351569, 2353578]
-```
-
-> Cenário B demonstra ganho expressivo de latência em todas as políticas — a localidade temporal reduz os misses drasticamente.
-
----
-
-### 11.4 Hit Rate (%) por Política e Capacidade — base 50k
-```mermaid
-xychart-beta
-    title "Hit Rate (%) — Base 50.000"
-    x-axis ["Cap 10", "Cap 50", "Cap 100", "Cap 500", "Cap 1k", "Cap 5k", "Cap 10k", "Cap 50k"]
-    y-axis "Hit Rate (%)" 0 --> 100
-    line [0.06, 0.29, 0.56, 2.91, 5.80, 26.74, 46.29, 83.54]
-    line [0.08, 0.34, 0.63, 3.03, 5.93, 28.10, 51.17, 83.54]
-    line [0.06, 0.29, 0.56, 2.92, 5.86, 27.99, 51.32, 83.54]
-```
-> 🔵 1ª linha: FIFO · 🟢 2ª linha: LFU · 🔴 3ª linha: LRU — LFU e LRU superam FIFO nas capacidades intermediárias (5k–10k).
-
----
-
-### 11.5 Fluxo de Decisão — Qual política escolher?
-
-```mermaid
-flowchart TD
-    A[Inicio: Escolher politica de cache] --> B{Qual e o padrao de acesso?}
-    B -->|Sem padrao definido| C[Cenario Uniforme]
-    B -->|Pacientes retornam em curto prazo| D[Cenario Temporal]
-    B -->|Poucos pacientes concentram muitos acessos| E[Cenario Pareto]
-
-    C --> F[FIFO]
-    D --> G[LRU]
-    E --> H[LFU]
-
-    F --> F1[Menor complexidade de implementacao]
-    F --> F2[Desempenho similar ao LRU e LFU]
-    G --> G1[Ideal para localidade temporal]
-    G --> G2[Complexidade O1 com HashMap e lista encadeada]
-    H --> H1[Ideal para alta recorrencia]
-    H --> H2[Complexidade O1 com duplo HashMap e minFrequencia]
-
-    style F fill:#f0ad4e,color:#000
-    style G fill:#5bc0de,color:#000
-    style H fill:#5cb85c,color:#000
-```
-
----
-### 11.6 Diagrama de Classes Simplificado
+## 13. Diagrama de Classes
 
 ```mermaid
 classDiagram
@@ -345,6 +350,8 @@ classDiagram
         -freqMap HashMap~Integer,LinkedHashSet~
         -minFrequencia int
         +access(key T) bool
+        -atualizarFrequencia(key)
+        -removerElementoMenosFrequente()
     }
 
     class BancoDeDadosSimulado {
@@ -356,13 +363,23 @@ classDiagram
 
     class Experimentos {
         +main(args)
+        -realizarWarmUp()
         -executarExperimento(...)
     }
 
     class WorkloadGenerator {
-        +gerarCenarioA(...)
-        +gerarCenarioB(...)
-        +gerarCenarioC(...)
+        -SEED int
+        +gerarCenarioA(...) List~Integer~
+        +gerarCenarioB(...) List~Integer~
+        +gerarCenarioC(...) List~Integer~
+    }
+
+    class TesteEstruturas {
+        +main(args)
+        -testarFIFO()
+        -testarLRU()
+        -testarLFU()
+        -assertEquals(bool, bool, String)
     }
 
     CachePolicy <|.. FIFOCache
@@ -371,29 +388,47 @@ classDiagram
     Experimentos --> CachePolicy
     Experimentos --> WorkloadGenerator
     Experimentos --> BancoDeDadosSimulado
+    TesteEstruturas --> FIFOCache
+    TesteEstruturas --> LRUCache
+    TesteEstruturas --> LFUCache
 ```
+
 
 ---
 
-## 12. Como Compilar e Executar
+## 14. Como Compilar e Executar
+
 **Passo 1 — Compilação** (na raiz do projeto):
 ```bash
 javac -d bin $(find src/main/java -name "*.java")
 ```
 
-**Passo 2 — Execução:**
+**Passo 2 — Testes unitários** (recomendado antes dos experimentos):
+```bash
+java -cp bin br.com.cacheanalysis.testes.TesteEstruturas
+```
+
+**Passo 3 — Experimentos:**
 ```bash
 java -cp bin br.com.cacheanalysis.simulacao.Experimentos
 ```
 
-O programa testa automaticamente todas as combinações e gera o arquivo `resultados_experimentos.csv` ao final da execução.
+O programa exibirá o progresso do warm-up e dos experimentos no console e gravará `resultados_experimentos.csv` ao final.
 
+**Passo 4 — Gráficos** (requer Python):
+```bash
+pip install pandas matplotlib
+python gerar_graficos.py
+```
 ---
-## 13. Conclusão
+## 15. Conclusão
+
 A execução do simulador em escala de estresse demonstra que a eficiência de um sistema de saúde não depende apenas de hardware, mas da escolha estratégica das estruturas de dados.
 
-- **FIFO** oferece simplicidade máxima de implementação, mas não aproveita padrões de acesso
-- **LRU** é ideal quando há localidade temporal — pacientes que retornam frequentemente em curto prazo
-- **LFU** é ideal quando há concentração de acesso — pacientes crônicos com histórico de alta recorrência
+**FIFO** oferece simplicidade máxima e complexidade O(1), mas ignora padrões de acesso — seu desempenho não se adapta ao comportamento dos dados.
 
-Não existe um algoritmo universalmente melhor. A escolha da política depende do padrão de requisições da unidade de saúde, exigindo análise prévia do comportamento dos dados.
+**LRU** é ideal quando há localidade temporal: pacientes que retornam frequentemente em curto prazo ficam quentes no cache. Implementado com `HashMap` + lista duplamente encadeada para garantir O(1) em todas as operações.
+
+**LFU** é ideal quando há concentração de acesso: pacientes crônicos acumulam alta frequência e raramente são evictados. O uso de `minFrequencia` como sentinela garante evicção em O(1) sem buscas lineares.
+
+Não existe política universalmente superior. A escolha depende do padrão de acessos da unidade de saúde: sistemas com forte localidade temporal favorecem LRU; sistemas com concentração em pacientes recorrentes favorecem LFU; ambientes sem padrão definido podem optar pela simplicidade do FIFO.
