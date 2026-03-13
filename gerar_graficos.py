@@ -1,7 +1,11 @@
+import os
 import pandas as pd
 import matplotlib.pyplot as plt
 
 def gerar_graficos():
+    # Garante que a pasta 'graficos' exista antes de tentar salvar os arquivos
+    os.makedirs('graficos', exist_ok=True)
+
     # 1. Carregar os dados reais gerados pelo seu programa Java
     df = pd.read_csv('resultados_experimentos.csv')
     
@@ -30,7 +34,8 @@ def gerar_graficos():
     plt.legend()
     plt.grid(True, linestyle='--', alpha=0.6)
     plt.tight_layout()
-    plt.savefig('grafico_tempo_cpu.png')
+    # Caminho atualizado
+    plt.savefig('graficos/grafico_tempo_cpu.png')
 
     # =========================================================
     # GRÁFICOS 2, 3 e 4: Hit Rates nos Cenários A, B e C
@@ -56,9 +61,9 @@ def gerar_graficos():
         plt.legend()
         plt.grid(True, linestyle='--', alpha=0.6)
         plt.tight_layout()
-        plt.savefig(f'grafico_hit_rate_cenario_{cenario.lower()}.png')
+        plt.savefig(f'graficos/grafico_hit_rate_cenario_{cenario.lower()}.png')
         
-    print("Sucesso: 4 gráficos PNG gerados na pasta atual!")
+    print("Sucesso: 4 gráficos PNG gerados na pasta 'graficos'!")
 
 if __name__ == '__main__':
     gerar_graficos()
