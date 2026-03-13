@@ -8,12 +8,13 @@
 - Mikael Renan de Oliveira
 - Teones Alex Lira de Farias Filho
 
-### **Documento do projeto:**<br>
+### Documento do projeto:<br>
 https://docs.google.com/document/d/1kaUEZov6HEL2luhc6fQw7EsyArWNKysm/edit?usp=sharing&ouid=106442824714548305124&rtpof=true&sd=true
 
 
-### **Relatório do projeto:**<br>
+### Relatório do projeto:<br>
 https://docs.google.com/document/d/1lyrMzJ-55yJK_MlIjvBD38Hob6t6xC7bt41ayEYId-4/edit?usp=sharing
+
 ---
 ## 1. Visão Geral
 Este projeto implementa e compara três políticas de substituição de cache aplicadas a um simulador de sistema de saúde. O objetivo é demonstrar como a escolha da estrutura de dados impacta diretamente o desempenho de um sistema real.
