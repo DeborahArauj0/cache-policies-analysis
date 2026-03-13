@@ -46,7 +46,7 @@ public class Experimentos {
                     executarExperimento(new LFUCache<>(capacidade), acessosA, "A", "LFU", totalPacientes, totalAcessos, capacidade, writer);
                     executarExperimento(new LRUCache<>(capacidade), acessosA, "A", "LRU", totalPacientes, totalAcessos, capacidade, writer);
 
-                    // Cenário B
+                    // Cenário B 
                     executarExperimento(new FIFOCache<>(capacidade), acessosB, "B", "FIFO", totalPacientes, totalAcessos, capacidade, writer);
                     executarExperimento(new LFUCache<>(capacidade), acessosB, "B", "LFU", totalPacientes, totalAcessos, capacidade, writer);
                     executarExperimento(new LRUCache<>(capacidade), acessosB, "B", "LRU", totalPacientes, totalAcessos, capacidade, writer);
